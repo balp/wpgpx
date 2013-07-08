@@ -1,0 +1,54 @@
+#!/usr/bin/python
+import sys as mod_sys
+import logging as mod_logging
+import math as mod_math
+import gpxpy as mod_gpxpy
+import os.path
+
+gpx_files = mod_sys.argv[1:]
+
+if not gpx_files:
+    print('No GPX files given')
+    mod_sys.exit(1)
+
+for gpx_file in gpx_files:
+    try:
+        gpx = mod_gpxpy.parse(open(gpx_file))
+        print('File: %s' % gpx_file)
+        if gpx.name: 
+            print('  GPX name: %s' % gpx.name)
+        if gpx.description:
+            print('  GPX description: %s' % gpx.description)
+        for track in gpx.tracks:
+            if track.name:
+                print('  GPX Track: %s' % track.name)
+            bounds = track.get_bounds()
+            latdeg = bounds.max_latitude - bounds.min_latitude 
+            londeg = bounds.max_longitude - bounds.min_longitude 
+            latdistance = mod_gpxpy.geo.distance(bounds.max_latitude, bounds.min_longitude, None, bounds.min_latitude, bounds.min_longitude, None) 
+            print ('Lat distance %s - %s ' % (latdistance, latdistance / 450 ) )
+            londistance = mod_gpxpy.geo.distance(bounds.max_latitude, bounds.min_longitude, None, bounds.max_latitude, bounds.max_longitude, None)
+            print ('Lon distance %s - %s ' % (londistance, londistance / 300 ) )
+            tmp = max(latdistance/450, londistance/300)
+            zoom = 7
+            if ( tmp < 19):
+                zoom = 12
+            elif ( tmp < 38):
+                zoom = 11
+            elif ( tmp < 76):
+                zoom = 10
+            elif ( tmp < 150):
+                zoom = 9
+            elif ( tmp < 300):
+                zoom = 8
+
+            print(' [osm_map Lat="%s" Long="%s" zoom="%s" gpx_file="http://anno.arnholm.se/wp-content/uploads/gpx/%s"]'
+                    % ( (bounds.min_latitude + (bounds.max_latitude - bounds.min_latitude)/2),
+                        (bounds.min_longitude + (bounds.max_longitude - bounds.min_longitude)/2),
+                        zoom,
+                        os.path.basename(gpx_file) ) )
+    except Exception as e:
+        mod_logging.exception(e)
+        print('Error processing %s' % gpx_file)
+        mod_sys.exit(1)
+
